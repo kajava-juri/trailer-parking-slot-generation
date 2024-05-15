@@ -26,4 +26,4 @@ The output of the program is a .geojson file, which contains the coordinates of 
 the identification number
 
 ## Inside the script
-There is a boolena variable ``` reverse_coordinates ``` that flips the x and y coordinates
+There is a boolean variable ``` reverse_coordinates ``` that flips the x and y coordinates
