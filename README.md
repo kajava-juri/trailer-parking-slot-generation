@@ -1,3 +1,4 @@
+
 # Configuration
 The program reads a configuration file that contains information for each sector with following
 features:
@@ -27,3 +28,154 @@ the identification number
 
 ## Inside the script
 There is a boolean variable ``` reverse_coordinates ``` that flips the x and y coordinates
+
+# Examples
+### Slots on a straight line without the angle
+
+```
+{
+	"id": "A",
+	"count": 23,
+	"start": {
+		"y": 51.904402,
+		"x": 4.360795
+	},
+	"start2": {
+		"y": 51.904310,
+		"x": 4.360648
+	},
+	"end": {
+		"y": 51.903205,
+		"x": 4.361150
+	}
+}
+```
+
+### Slots in groups
+
+```
+{
+  "id": "R",
+  "groups": [
+    {
+      "count": 11,
+      "start": {
+        "y": 51.909215,
+        "x": 4.362557
+      },
+      "start2": {
+        "y": 51.909201,
+        "x": 4.362315
+      },
+      "end": {
+        "y": 51.908852,
+        "x": 4.362363
+      }
+    },
+    {
+      "count": 11,
+      "start": {
+        "y": 51.908821,
+        "x": 4.362346
+      },
+      "start2": {
+        "y": 51.908841,
+        "x": 4.362579
+      },
+      "end": {
+        "y": 51.909214,
+        "x": 4.362558
+      }
+    }
+  ]
+}
+```
+
+### Slots with groups and multiline 
+```
+{
+  "id": "Q",
+  "skip": 12,
+  "groups": [
+    {
+      "start": {
+        "y": 51.909344,
+        "x": 4.362551
+      },
+      "start2": {
+        "y": 51.909456,
+        "x": 4.362525
+      },
+      "end": {
+        "y": 51.909068,
+        "x": 4.364002
+      },
+      "multiline": [
+        {
+          "y": 51.909056,
+          "x": 4.364051
+        },
+        {
+          "y": 51.909035,
+          "x": 4.364087
+        },
+        {
+          "y": 51.909,
+          "x": 4.364117
+        }
+      ]
+    },
+    {
+      "start": {
+        "y": 51.908992,
+        "x": 4.364111
+      },
+      "start2": {
+        "y": 51.909007,
+        "x": 4.364305
+      },
+      "end": {
+        "y": 51.908662,
+        "x": 4.363934
+      }
+    }
+  ]
+}
+```
+
+### Slots with the angle
+```
+{
+  "id": "N",
+  "numbering": "hop",
+  "layout": "angle",
+  "groups": [
+    {
+      "count": 15,
+      "end": {
+        "y": 51.908576,
+        "x": 4.3637
+      },
+      "start": {
+        "y": 51.9088,
+        "x": 4.362178
+      },
+      "parking_angle": 30,
+      "direction": false
+    },
+    {
+      "count": 15,
+      "start": {
+        "y": 51.908959566997794,
+        "x": 4.362291817680102
+      },
+      "end": {
+        "y": 51.9087464072073,
+        "x": 4.3637384276641455
+      },
+      "parking_angle": 30,
+      "side": false
+    }
+  ]
+}
+```
