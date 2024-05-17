@@ -1,3 +1,4 @@
+The following repository also contains a complete configuration file for the parking slots of one port in Rotterdam
 
 # Configuration
 The program reads a configuration file that contains information for each sector with following
