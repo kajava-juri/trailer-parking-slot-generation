@@ -51,6 +51,8 @@ There is a boolean variable ``` reverse_coordinates ``` that flips the x and y c
 }
 ```
 
+![](https://i.imgur.com/ukJjbx3.png)
+
 ### Slots in groups
 
 ```
@@ -90,7 +92,7 @@ There is a boolean variable ``` reverse_coordinates ``` that flips the x and y c
   ]
 }
 ```
-
+![](https://i.imgur.com/QUQgPSN.png)
 ### Slots with groups and multiline 
 ```
 {
@@ -142,7 +144,7 @@ There is a boolean variable ``` reverse_coordinates ``` that flips the x and y c
   ]
 }
 ```
-
+![](https://i.imgur.com/4xNg3MT.png)
 ### Slots with the angle
 ```
 {
@@ -179,3 +181,4 @@ There is a boolean variable ``` reverse_coordinates ``` that flips the x and y c
   ]
 }
 ```
+![](https://i.imgur.com/XlTGJWQ.png)
