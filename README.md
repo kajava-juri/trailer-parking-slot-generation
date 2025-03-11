@@ -1,4 +1,4 @@
-The following repository also contains a complete configuration file for the parking slots of one port in Rotterdam
+The following repository also contains a complete configuration file for the parking slots of one port in Rotterdam. Only satellite images were used to get the coordinates of parking slots. To generate a single line of parking slots either 3 points or 2 points + angle are needed, more options are listed below, as well as examples.
 
 # Configuration
 The program reads a configuration file that contains information for each sector with following
