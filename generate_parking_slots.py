@@ -218,8 +218,6 @@ def generate_parking_slots(sector):
                 id_number = j+1+skip
             elif numbering == "hop":
                 id_number = j*total_groups+1+skip
-            if id_number == 11 and sector_id == "test-":
-                print("YO")
                 
             save_polygon(sector["id"] + str(id_number),
                         [round(startY, 6), round(startX, 6)],  
