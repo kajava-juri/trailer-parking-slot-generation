@@ -125,7 +125,7 @@ def generate_parking_slots(sector):
     layout = "normal" if "layout" not in sector else sector["layout"]
     parking_angle = 90
 
-    #schema: start - 0, end - 1, start2 - 2, mulitpoint - 3
+    #schema: start - 0, end - 1, start2 - 2, multipoint - 3
     config_data = {
         "sector_data": {
             "start": [],
