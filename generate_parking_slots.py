@@ -1,22 +1,29 @@
 import os
-from shapely.geometry import LineString, Polygon, mapping, MultiPoint
 import json
 import math
-import numpy as np
+from typing import List
+
+from shapely.geometry import Polygon, mapping
 from geometry_utils import bearing, get_point_at_distance, haversine_distance
+from models import ParkingSector, parse_parking_sector
 
 reverse_coordinates = True
 
 if reverse_coordinates:
     file_path = os.path.join(os.path.dirname(__file__), "parking_polygons_reversed.geojson")
-    config_file = open(os.path.join(os.path.dirname(__file__), "parking_sectors.json"))
+    config_path = os.path.join(os.path.dirname(__file__), "parking_sectors.json")
     config_geometry_file = os.path.join(os.path.dirname(__file__), "config_geometry_reversed.geojson")
 else:
     file_path = os.path.join(os.path.dirname(__file__), "parking_polygons.geojson")
-    config_file = open(os.path.join(os.path.dirname(__file__), "parking_sectors.json"))
+    config_path = os.path.join(os.path.dirname(__file__), "parking_sectors.json")
     config_geometry_file = os.path.join(os.path.dirname(__file__), "config_geometry.geojson")
-official_slots = json.load(config_file)
-config_file.close()
+
+with open(config_path) as config_file:
+    raw_sectors = json.load(config_file)
+
+# Note: parse all sectors into dataclasses first for clarity even if
+# it requires looping over the configuration twice.
+official_slots: List[ParkingSector] = [parse_parking_sector(s) for s in raw_sectors]
 parkingPolygons = []
 config_geometry = {}
 
@@ -41,26 +48,26 @@ def save_polygon(id, p1, p2, p3, p4):
         ])
     })
 
-def generate_parking_slots(sector):
-    start = {"y": sector["start"]["y"], "x": sector["start"]["x"]}
+def generate_parking_slots(sector: ParkingSector) -> int:
+    start = {"y": sector.start.y, "x": sector.start.x}
     j = 0
     skip = 0
-    sector_id = sector["id"]
-    current_group = sector["current_group"] if "current_group" in sector else 0
-    if "width" in sector:
-        d = sector["width"] / 1000
+    sector_id = sector.id
+    current_group = getattr(sector, "current_group", 0)
+    if sector.width is not None:
+        d = sector.width / 1000
     else:
         d = parking_slot_width
-    
-    if "length" in sector:
-        slot_length = sector["length"] / 1000
+
+    if sector.length is not None:
+        slot_length = sector.length / 1000
     else:
         slot_length = parking_slot_length
-    
-    if "skip" in sector:
-        skip = sector["skip"]
-    
-    layout = "normal" if "layout" not in sector else sector["layout"]
+
+    if sector.skip is not None:
+        skip = sector.skip
+
+    layout = sector.layout if sector.layout is not None else "normal"
     parking_angle = 90
 
     #schema: start - 0, end - 1, start2 - 2, multipoint - 3
@@ -74,35 +81,35 @@ def generate_parking_slots(sector):
     }
     
     config_geometry[sector_id][current_group] = config_data
-    config_geometry[sector_id][current_group]["sector_data"]["start"] = [sector["start"]["y"], sector["start"]["x"]] if not reverse_coordinates else [sector["start"]["x"], sector["start"]["y"]]
-    if "end" in sector:
-        config_geometry[sector_id][current_group]["sector_data"]["end"] = [sector["end"]["y"], sector["end"]["x"]] if not reverse_coordinates else [sector["end"]["x"], sector["end"]["y"]]
-    if "start2" in sector:
-        config_geometry[sector_id][current_group]["sector_data"]["start2"] = [sector["start2"]["y"], sector["start2"]["x"]] if not reverse_coordinates else [sector["start2"]["x"], sector["start2"]["y"]]
+    config_geometry[sector_id][current_group]["sector_data"]["start"] = [sector.start.y, sector.start.x] if not reverse_coordinates else [sector.start.x, sector.start.y]
+    if sector.end is not None:
+        config_geometry[sector_id][current_group]["sector_data"]["end"] = [sector.end.y, sector.end.x] if not reverse_coordinates else [sector.end.x, sector.end.y]
+    if sector.start2 is not None:
+        config_geometry[sector_id][current_group]["sector_data"]["start2"] = [sector.start2.y, sector.start2.x] if not reverse_coordinates else [sector.start2.x, sector.start2.y]
         
     #parking slots are at an angle
     if layout == "angle":
-        end = {"y": sector["end"]["y"], "x": sector["end"]["x"]}
+        end = {"y": sector.end.y, "x": sector.end.x}
         startX = start["x"]
         endX = end["x"]
         startY = start["y"]
         endY = end["y"]
-        
-        width = 3.5 if not "width" in sector else sector["width"]
+
+        width = 3.5 if sector.width is None else sector.width
         width = width / 1000
         #which side of line 'right' or 'left'
-        reverse = True if not "side" in sector else sector["side"]
+        reverse = True if sector.side is None else sector.side
         #which side the slot will be pointing 'up' or 'down'
-        direction = True if not "direction" in sector else sector["direction"]
-        
-        numbering = "normal" if not "numbering" in sector else sector["numbering"]
-        total_groups = sector["total_groups"] if "total_groups" in sector else 1
+        direction = True if sector.direction is None else sector.direction
+
+        numbering = "normal" if sector.numbering is None else sector.numbering
+        total_groups = getattr(sector, "total_groups", 1)
 
         #Bearing
         brng = bearing(startY, startX, endY, endX)  # in degrees
-        parking_angle = 180 - 90 - sector["parking_angle"]
-        
-        extend = True if "extend" not in sector else sector["extend"]
+        parking_angle = 180 - 90 - sector.parking_angle
+
+        extend = getattr(sector, "extend", True)
         
         #angle of the parking slot
         if direction:
@@ -128,9 +135,9 @@ def generate_parking_slots(sector):
 
         while breakFlag: 
             #loop until reached the count, if not set then until reached the distance
-            if "count" in sector and j >= sector["count"] - 1:
+            if sector.count is not None and j >= sector.count - 1:
                 breakFlag = False
-            if current_distance + d - marginOferror > distance and not "count" in sector:
+            if current_distance + d - marginOferror > distance and sector.count is None:
                 breakFlag = False
             
             startX = start["x"]
@@ -157,8 +164,8 @@ def generate_parking_slots(sector):
             elif numbering == "hop":
                 id_number = j*total_groups+1+skip
                 
-            save_polygon(sector["id"] + str(id_number),
-                        [round(startY, 6), round(startX, 6)],  
+            save_polygon(sector.id + str(id_number),
+                        [round(startY, 6), round(startX, 6)],
                         [round(lengthY, 6), round(lengthX, 6)],
                         [round(lengthY2, 6), round(lengthX2, 6)],
                         [round(widthY, 6), round(widthX, 6)])
@@ -170,8 +177,8 @@ def generate_parking_slots(sector):
             
 
     #create slots on a straight line if all 3 coordinates are set
-    if "end" in sector and "start2" in sector:
-        end = {"y": sector["end"]["y"], "x": sector["end"]["x"]}
+    if sector.end is not None and sector.start2 is not None:
+        end = {"y": sector.end.y, "x": sector.end.x}
         startX = start["x"]
         endX = end["x"]
         startY = start["y"]
@@ -181,15 +188,15 @@ def generate_parking_slots(sector):
         brng = bearing(startY, startX, endY, endX)  # in degrees
 
         #generate parking slots until the count is reached
-        if "count" in sector:
-            lenghtVector = {"x": sector["start2"]["x"] - start["x"], "y": sector["start2"]["y"] - start["y"]}
+        if sector.count is not None:
+            lenghtVector = {"x": sector.start2.x - start["x"], "y": sector.start2.y - start["y"]}
 
-            for i in range(1, sector["count"] + 1):
+            for i in range(1, sector.count + 1):
                 startX = start["x"]
                 startY = start["y"]
                 
                 yDistance, xDistance = get_point_at_distance(startY, startX, d, brng)
-                save_polygon(sector["id"] + str(i+skip),
+                save_polygon(sector.id + str(i+skip),
                         [start["y"], start["x"]],
                         [start["y"] + lenghtVector["y"], start["x"] + lenghtVector["x"]],
                         [yDistance + lenghtVector["y"], xDistance + lenghtVector["x"]],
@@ -209,7 +216,7 @@ def generate_parking_slots(sector):
             distance = haversine_distance(startY, startX, endY, endX)
             current_distance = d
             #bearing angle of the parking slot lenght
-            lenghtBearing = bearing(startY, startX, sector["start2"]["y"], sector["start2"]["x"])
+            lenghtBearing = bearing(startY, startX, sector.start2.y, sector.start2.x)
             while current_distance - marginOferror < distance:
                 startX = start["x"]
                 startY = start["y"]
@@ -220,8 +227,8 @@ def generate_parking_slots(sector):
                 lengthY2, lengthX2 = get_point_at_distance(yDistance, xDistance, slot_length, lenghtBearing)
 
                 save_polygon(
-                        sector["id"] + str(j+1+skip),
-                        [round(startY, 6), round(startX, 6)],  
+                        sector.id + str(j+1+skip),
+                        [round(startY, 6), round(startX, 6)],
                         [round(lengthY, 6), round(lengthX, 6)],
                         [round(lengthY2, 6), round(lengthX2, 6)],
                         [round(yDistance, 6), round(xDistance, 6)]
@@ -232,29 +239,29 @@ def generate_parking_slots(sector):
                 current_distance += d
                 j+=1
         
-    if "multiline" in sector:
+    if sector.multiline:
         constantWitdhBearing = False
         lenghtBearing = 0
         
         multiline_points = []
 
-        for i, point in enumerate(sector["multiline"]):
+        for i, point in enumerate(sector.multiline):
 
-            multiline_points.append([point["y"], point["x"]] if not reverse_coordinates else [point["x"], point["y"]])
+            multiline_points.append([point.y, point.x] if not reverse_coordinates else [point.x, point.y])
 
             #can set using the start objective because everytime a new parking slot is generated start coordinates are updated
             startX = start["x"]
             startY = start["y"]
-            endX = point["x"]
-            endY = point["y"]
+            endX = point.x
+            endY = point.y
             brng = bearing(startY, startX, endY, endX)  # in degrees
-            distance = haversine_distance(start["y"], start["x"], point["y"], point["x"])
+            distance = haversine_distance(start["y"], start["x"], point.y, point.x)
             current_distance = d
 
             #if start 2 is set without the end coordinate, that means there will be a constant lenght angle (Parallelogram)
             #if not set then the lenght angle will be perpendicular to the slot width (rectangle)
-            if "start2" in sector and not "end" in sector and not constantWitdhBearing:
-                lenghtBearing = bearing(startY, startX, sector["start2"]["y"], sector["start2"]["x"])
+            if sector.start2 is not None and sector.end is None and not constantWitdhBearing:
+                lenghtBearing = bearing(startY, startX, sector.start2.y, sector.start2.x)
                 constantWitdhBearing = True
                 reverse = False
             elif not constantWitdhBearing:
@@ -274,8 +281,8 @@ def generate_parking_slots(sector):
                 elif numbering == "hop":
                     id_number = j*total_groups+1+skip
                     
-                save_polygon(sector["id"] + str(id_number),
-                        [round(slotY, 6), round(slotX, 6)],  
+                save_polygon(sector.id + str(id_number),
+                        [round(slotY, 6), round(slotX, 6)],
                         [round(lengthY, 6), round(lengthX, 6)],
                         [round(lengthY2, 6), round(lengthX2, 6)],
                         [round(yDistance, 6), round(xDistance, 6)]
@@ -285,35 +292,35 @@ def generate_parking_slots(sector):
                 slotX = xDistance
                 slotY = yDistance
 
-            start["x"] = point["x"]
-            start["y"] = point["y"]
+            start["x"] = point.x
+            start["y"] = point.y
 
         config_geometry[sector_id][current_group]["sector_data"]["multiline"] = multiline_points
     
     return j
 
-def generate(sectors):
+def generate(sectors: List[ParkingSector]):
     for sector in sectors:
-        config_geometry[sector["id"]] = [{}]
-        if "groups" in sector:
-            skip = sector["skip"] if "skip" in sector else 0
-            total_groups = len(sector["groups"])
-            layout = sector["layout"] if "layout" in sector else "normal" 
-            numbering = sector["numbering"] if "numbering" in sector else "normal"
+        config_geometry[sector.id] = [{}]
+        if sector.groups:
+            skip = sector.skip if sector.skip is not None else 0
+            total_groups = len(sector.groups)
+            layout = sector.layout if sector.layout is not None else "normal"
+            numbering = sector.numbering if sector.numbering is not None else "normal"
             current_group = 0
-            for group in sector["groups"]:
-                if "count" in sector:
-                    group["count"] = sector["count"]
-                group["skip"] = skip
-                group["id"] = sector["id"]
-                group["total_groups"] = total_groups
-                group["numbering"] = numbering
+            for group in sector.groups:
+                if sector.count is not None:
+                    group.count = sector.count
+                group.skip = skip
+                group.id = sector.id
+                group.total_groups = total_groups
+                group.numbering = numbering
 
-                if "layout" not in group:
-                    group["layout"] = layout
-                    
-                group["current_group"] = current_group
-                
+                if group.layout is None:
+                    group.layout = layout
+
+                group.current_group = current_group
+
                 count = generate_parking_slots(group)
                 if numbering == "hop":
                     skip += 1
@@ -321,7 +328,7 @@ def generate(sectors):
                     skip += count
                 current_group += 1
                 if current_group < total_groups:
-                    config_geometry[sector["id"]].append({})
+                    config_geometry[sector.id].append({})
         else:
             generate_parking_slots(sector)
 
